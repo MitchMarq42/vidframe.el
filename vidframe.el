@@ -5,7 +5,7 @@
 ;; Author: mitch <mitch@mitchmarq42.xyz>
 ;; Keywords:files,multimedia,emulations
 
-;; Package-Requires: ((empv) (rx) (stream))
+;; Package-Requires: ((empv) (stream))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
