@@ -31,7 +31,7 @@
 
 (defvar vidframe-cache-dir "/tmp/vidframe-el/cache/")
 (defvar vid-playing-p nil)
-
+(defvar vidframe--buffer "*vidframe*")
 
 (defun number-in-string (string)
   "Given STRING (typically filename of an MP4), return the number in it."
@@ -80,10 +80,12 @@
 
 (defun vidframe-display-next-image ()
   "Show the next image in `vidframe-remaining-frames' in vidframe buffer."
-  (let* ((next-image (stream-pop vidframe-remaining-frames)))
-    (with-current-buffer (get-buffer "*vidframe*")
-      (vidframe--display-image vidframe-image)
-      (setq vidframe-image next-image))))
+  (let* ((inhibit-read-only t)
+	 (next-image (stream-pop vidframe-remaining-frames)))
+    (with-current-buffer (get-buffer vidframe--buffer)
+      (with-silent-modifications
+	(vidframe--display-image vidframe-image)
+	(setq vidframe-image next-image)))))
 
 (defun vidframe--extract-sound (file)
   "Extract sound from FILE."
@@ -102,9 +104,10 @@
 			#'vidframe-display-next-image))
   (empv-resume)
   (setq vid-playing-p t)
-  (unless (eq (window-buffer) (get-buffer "*vidframe*"))
-    (pop-to-buffer (get-buffer "*vidframe*")
-		   #'display-buffer-reuse-window)))
+  ;; (unless (eq (window-buffer) (get-buffer vidframe--buffer))
+  ;;   (pop-to-buffer (get-buffer vidframe--buffer)
+  ;; 		   #'display-buffer-reuse-window))
+  )
 (defun vidframe-pause ()
   (interactive)
   (cancel-timer vidframe-timer)
@@ -142,13 +145,28 @@
   (setq vidframe-remaining-frames vidframe-frames)
   (setq vidframe-image (stream-first vidframe-remaining-frames))
 
-  (pop-to-buffer (get-buffer-create "*vidframe*"))
+  ;; (pop-to-buffer (get-buffer-create vidframe--buffer))
   (empv-exit)
   (empv-enqueue
    (format "%s/audio/audio.aac" vidframe--this-file-cache))
   (setq vid-playing-p t)
   (vidframe-play))
 ;; (vidframe-setup "/home/mitch/testdir/conan1.mp4")
+
+;;;###autoload
+(defvar-keymap vidframe-mode-map
+  "SPC" #'vidframe-pause-or-resume)
+
+;;;###autoload
+(define-derived-mode vidframe-mode fundamental-mode "VidFrame"
+  "Major mode for playing video files."
+  :group 'vidframe
+  (local-set-key "p" 'vidframe-pause-or-resume)
+  (setq vidframe--buffer (current-buffer))
+  (vidframe-setup (expand-file-name (buffer-file-name))))
+
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.mp4\\'" . vidframe-mode))
 
 (provide 'vidframe)
 ;;; vidframe.el ends here
